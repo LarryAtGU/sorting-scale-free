@@ -1,0 +1,17 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+data/generated/*
+!data/generated/.gitkeep
+data/results/*
+!data/results/.gitkeep
+figures/*
+!figures/.gitkeep
+
