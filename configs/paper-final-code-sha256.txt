@@ -1,0 +1,10 @@
+# Frozen implementation manifest, 2026-09-14
+# Git HEAD at freeze time: 78c30ad91aaa36b72a72b43b7c591705c4b70679
+# The working tree contained uncommitted files; these SHA-256 values, rather
+# than Git HEAD alone, identify the implementation used by the protocol.
+b92184eb0b43a47c57605c8a1cc1c0c7103d9922cdeb351e5d1d0341ba84125a  src/scn_sorting/algorithms/initial.py
+1feb435337ed91853721e2899ae9ceb4f7a73ad7387497c72cb5b66d383ab6f1  src/scn_sorting/algorithms/expanded.py
+bf5d67083ec777e4b5b574c1059acee9372a49abd432b23e9c44dee43f0c7111  src/scn_sorting/instrumentation/core.py
+8e506085bf31a6a2dafc35c6d4a4c327fa94d8d66c67435175b502ce06f50942  src/scn_sorting/experiments/batch.py
+c34ea7fccb448d6a92ffa628f0e7899c6dd4ad279bd5da8709c3cfe107847ef7  src/scn_sorting/analysis/powerlaw.py
+60e4a7c0636717b5cde18dba29cbddfc957edaf337b579493bd67dc4e01d495c  src/scn_sorting/experiments/permutations.py

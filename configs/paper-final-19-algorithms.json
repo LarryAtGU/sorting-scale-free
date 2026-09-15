@@ -1,0 +1,43 @@
+{
+  "protocol_version": 1,
+  "frozen_on": "2026-09-14",
+  "label": "paper-final-19-algorithms",
+  "tracking_profile": "distribution-only",
+  "algorithms": [
+    "binary-insertion",
+    "bitonic-network",
+    "bubble",
+    "heap",
+    "insertion",
+    "introsort",
+    "merge-bottom-up",
+    "merge-insertion",
+    "merge-top-down",
+    "odd-even-merge-network",
+    "quick",
+    "quick-dual-pivot",
+    "quick-median-three",
+    "quick-random",
+    "selection",
+    "shell",
+    "tournament",
+    "tree-avl",
+    "tree-unbalanced"
+  ],
+  "sizes": [128, 256, 512, 1024, 2048, 4096],
+  "first_seed": 1,
+  "last_seed": 1000,
+  "expected_executions": 114000,
+  "primary_input_size": 4096,
+  "primary_predictor": "combined_efficiency_equal_weights",
+  "primary_outcome": "power_vs_exponential_llr",
+  "primary_association": "spearman_rank_correlation",
+  "primary_direction": "positive",
+  "pivot_family": [
+    "introsort",
+    "quick",
+    "quick-dual-pivot",
+    "quick-median-three",
+    "quick-random"
+  ]
+}

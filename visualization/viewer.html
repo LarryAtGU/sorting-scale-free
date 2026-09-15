@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCN Trace Viewer</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    body { margin: 0; background: #f5f7fa; color: #172033; }
+    header { padding: 12px 18px; background: white; border-bottom: 1px solid #d9deea; }
+    h1 { font-size: 18px; margin: 0 0 10px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    button, select, input { font: inherit; }
+    button { padding: 5px 10px; }
+    #timeline { width: min(420px, 45vw); }
+    #status { margin-left: auto; font-variant-numeric: tabular-nums; }
+    main { position: relative; height: calc(100vh - 88px); min-height: 520px; }
+    canvas { width: 100%; height: 100%; display: block; background: #fbfcfe; cursor: grab; }
+    canvas.dragging { cursor: grabbing; }
+    #details { position: absolute; right: 12px; top: 12px; background: #ffffffeb;
+      border: 1px solid #ccd3e0; border-radius: 6px; padding: 8px; min-width: 190px;
+      font-size: 13px; white-space: pre-line; pointer-events: none; }
+    .note { font-size: 12px; color: #59647a; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Sorting Comparison Network Trace Viewer</h1>
+  <div class="controls">
+    <input id="file" type="file" accept="application/json,.json">
+    <button id="reset">Reset</button><button id="back">◀ Step</button>
+    <button id="play">Play</button><button id="forward">Step ▶</button>
+    <label>Speed <select id="speed"><option value="800">Slow</option>
+      <option value="200" selected>Normal</option><option value="30">Fast</option></select></label>
+    <label>Layout <select id="layout"><option value="input">Input circle</option>
+      <option value="sorted">Sorted circle</option><option value="force" selected>Force</option>
+      <option value="stable">Stable</option></select></label>
+    <label><input id="reduction" type="checkbox"> Transitive reduction</label>
+    <label title="When off, links hidden by Transitive reduction no longer pull nodes in the force layout"><input id="hidden-force" type="checkbox" checked> Hidden links affect force</label>
+    <input id="timeline" type="range" min="0" max="0" value="0">
+    <span id="status">Load a trace JSON file</span>
+  </div>
+</header>
+<main><canvas id="canvas"></canvas><div id="details">No trace loaded
+
+<span class="note">Click a node to inspect it.</span></div></main>
+<script>
+const canvas=document.querySelector('#canvas'), ctx=canvas.getContext('2d');
+const ui=Object.fromEntries(['file','reset','back','play','forward','speed','layout','reduction','hidden-force','timeline','status','details'].map(id=>[id,document.querySelector('#'+id)]));
+let trace=null,nodes=[],step=0,timer=null,selected=null,dragged=null,edgeMap=new Map();
+function resize(){const r=canvas.getBoundingClientRect(),d=devicePixelRatio||1;canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);}
+new ResizeObserver(resize).observe(canvas);
+function circle(sorted){if(!trace)return;const w=canvas.clientWidth,h=canvas.clientHeight,R=Math.max(80,Math.min(w,h)*.39);nodes.forEach((node,i)=>{const rank=sorted?node.key:trace.input.indexOf(node.key),a=2*Math.PI*rank/nodes.length-Math.PI/2;node.x=w/2+R*Math.cos(a);node.y=h/2+R*Math.sin(a);node.vx=node.vy=0;});}
+function rebuild(target){step=Math.max(0,Math.min(target,trace?.events.length||0));edgeMap=new Map();if(trace)for(let i=0;i<step;i++){const e=trace.events[i],key=e.smaller_identity+'>'+e.larger_identity;edgeMap.set(key,{...e,active:i===step-1});}ui.timeline.value=step;}
+function adjacency(edges){const out=Array.from({length:nodes.length},()=>[]);edges.forEach(e=>out[e.smaller_identity].push(e.larger_identity));return out;}
+function reductionEdges(){const edges=[...edgeMap.values()],out=adjacency(edges);return edges.filter(edge=>{const seen=new Set([edge.smaller_identity]),stack=out[edge.smaller_identity].filter(v=>v!==edge.larger_identity);while(stack.length){const v=stack.pop();if(v===edge.larger_identity)return false;if(seen.has(v))continue;seen.add(v);stack.push(...out[v]);}return true;});}
+function releaseFixedPositions(){nodes.forEach(node=>{delete node.fx;delete node.fy;});}
+function fixCurrentPositions(){nodes.forEach(node=>{node.fx=node.x;node.fy=node.y;node.vx=0;node.vy=0;});}
+function forceEdges(){return ui.reduction.checked&&!ui['hidden-force'].checked?reductionEdges():[...edgeMap.values()];}
+function force(){if(!trace||ui.layout.value!=='force')return;const w=canvas.clientWidth,h=canvas.clientHeight,edges=forceEdges();for(let i=0;i<nodes.length;i++)for(let j=0;j<i;j++){let a=nodes[i],b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d2=Math.max(100,dx*dx+dy*dy),f=900/d2;a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f;}for(const e of edges){const a=nodes[e.smaller_identity],b=nodes[e.larger_identity],dx=b.x-a.x,dy=b.y-a.y,d=Math.max(1,Math.hypot(dx,dy)),f=(d-75)*.002;a.vx+=dx*f;a.vy+=dy*f;b.vx-=dx*f;b.vy-=dy*f;}for(const a of nodes){if(a.fx!==undefined){a.x=a.fx;a.y=a.fy;a.vx=a.vy=0;continue;}a.vx+=(w/2-a.x)*.0005;a.vy+=(h/2-a.y)*.0005;a.vx*=.82;a.vy*=.82;a.x=Math.max(15,Math.min(w-15,a.x+Math.max(-6,Math.min(6,a.vx))));a.y=Math.max(15,Math.min(h-15,a.y+Math.max(-6,Math.min(6,a.vy))));}}
+function degrees(edges){const d=Array(nodes.length).fill(0);edges.forEach(e=>{d[e.smaller_identity]++;d[e.larger_identity]++;});return d;}
+function arrow(a,b,color,width){let dx=b.x-a.x,dy=b.y-a.y,L=Math.max(1,Math.hypot(dx,dy)),ux=dx/L,uy=dy/L,r=8;ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(a.x+ux*r,a.y+uy*r);ctx.lineTo(b.x-ux*r,b.y-uy*r);ctx.stroke();let x=b.x-ux*r,y=b.y-uy*r;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-ux*9-uy*4,y-uy*9+ux*4);ctx.lineTo(x-ux*9+uy*4,y-uy*9-ux*4);ctx.closePath();ctx.fill();}
+function draw(){requestAnimationFrame(draw);ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);if(!trace)return;force();const edges=ui.reduction.checked?reductionEdges():[...edgeMap.values()],deg=degrees(edges);for(const e of edges)arrow(nodes[e.smaller_identity],nodes[e.larger_identity],e.active?'#e43d30':e.implied_before?'#a58ab8':'#9aa6bb',e.active?2.5:1);nodes.forEach((node,i)=>{const r=5+Math.sqrt(deg[i])*1.8;ctx.fillStyle=i===selected?'#ef7d32':'#2374ab';ctx.beginPath();ctx.arc(node.x,node.y,r,0,2*Math.PI);ctx.fill();if(nodes.length<=128){ctx.fillStyle='#172033';ctx.font='11px system-ui';ctx.fillText(node.key,node.x+r+2,node.y+4);}});ui.status.textContent=trace.algorithm+' | event '+step+' / '+trace.events.length+' | edges '+edges.length;updateDetails(deg);}
+function updateDetails(deg){if(selected==null){ui.details.textContent=trace?'Algorithm: '+trace.algorithm+'\nInput size: '+nodes.length+'\nSeed: '+(trace.seed??'unknown')+'\n\nClick a node to inspect it.':'No trace loaded';return;}const node=nodes[selected],events=trace.events.slice(0,step).filter(e=>e.left_identity===selected||e.right_identity===selected);ui.details.textContent='Identity: '+selected+'\nKey: '+node.key+'\nDegree: '+deg[selected]+'\nComparisons so far: '+events.length;}
+function stop(){if(timer){clearInterval(timer);timer=null;}ui.play.textContent='Play';}
+function advance(){if(step>=trace.events.length){stop();return;}rebuild(step+1);}
+function restartForceMotion(){if(ui.layout.value==='force')nodes.forEach(node=>{if(node.fx===undefined){node.vx+=(Math.random()-.5)*.2;node.vy+=(Math.random()-.5)*.2;}});}
+ui.file.onchange=async e=>{stop();trace=JSON.parse(await e.target.files[0].text());nodes=trace.nodes.map(node=>({...node,x:0,y:0,vx:0,vy:0}));ui.timeline.max=trace.events.length;rebuild(0);circle(false);selected=null;};
+ui.reset.onclick=()=>{stop();rebuild(0);circle(false);};ui.back.onclick=()=>{stop();rebuild(step-1);};ui.forward.onclick=()=>{stop();advance();};
+ui.play.onclick=()=>{if(!trace)return;if(timer){stop();return;}ui.play.textContent='Pause';timer=setInterval(advance,+ui.speed.value);};
+ui.speed.onchange=()=>{if(timer){stop();ui.play.click();}};ui.timeline.oninput=()=>{stop();rebuild(+ui.timeline.value);};
+ui.layout.onchange=()=>{if(ui.layout.value==='stable'){fixCurrentPositions();return;}releaseFixedPositions();if(ui.layout.value==='input')circle(false);else if(ui.layout.value==='sorted')circle(true);};
+ui.reduction.onchange=restartForceMotion;ui['hidden-force'].onchange=restartForceMotion;
+function nodeAt(x,y){let found=null,best=22;nodes.forEach((node,i)=>{const distance=Math.hypot(node.x-x,node.y-y);if(distance<best){best=distance;found=i;}});return found;}
+canvas.onpointerdown=e=>{if(!trace)return;const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;selected=nodeAt(x,y);if(selected===null)return;dragged=selected;const node=nodes[dragged];node.fx=node.x;node.fy=node.y;node.vx=node.vy=0;canvas.classList.add('dragging');canvas.setPointerCapture(e.pointerId);};
+canvas.onpointermove=e=>{if(dragged===null)return;const r=canvas.getBoundingClientRect(),node=nodes[dragged];node.x=node.fx=Math.max(15,Math.min(canvas.clientWidth-15,e.clientX-r.left));node.y=node.fy=Math.max(15,Math.min(canvas.clientHeight-15,e.clientY-r.top));node.vx=node.vy=0;};
+canvas.onpointerup=e=>{if(dragged===null)return;const node=nodes[dragged];if(ui.layout.value!=='stable'){delete node.fx;delete node.fy;}dragged=null;canvas.classList.remove('dragging');if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);};
+canvas.onpointercancel=canvas.onpointerup;
+resize();draw();
+</script>
+</body></html>
