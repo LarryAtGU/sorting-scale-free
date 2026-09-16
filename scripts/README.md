@@ -35,3 +35,23 @@ The first command reads the frozen 19-algorithm summary and writes
 four manuscript figures in the sibling `over-leaf/figures/` directory. The
 validation rules were frozen in `docs/statistical-validation-protocol.md` before
 the reported values were calculated.
+# Temporal mechanism experiment
+
+The frozen representative-exposure experiment is resumable and reads
+`configs/temporal-mechanism-v1.json` by default:
+
+```bash
+./scripts/run_temporal_mechanism.sh
+```
+
+For the prescribed smoke test (all algorithms, `n=128`, seeds 1--3), use:
+
+```bash
+./scripts/run_temporal_mechanism.sh --sizes 128 --first-seed 1 --last-seed 3 \
+  --output data/results/temporal-mechanism-v1-smoke
+```
+
+The runner appends each execution to `checkpoint.jsonl`, so rerunning the same
+command resumes completed work. Production outputs include compressed raw runs,
+an algorithm-size summary, the aggregated attachment kernel, and temporal
+snapshots.

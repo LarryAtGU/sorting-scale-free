@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
 from itertools import pairwise
 from typing import Any
@@ -81,6 +82,7 @@ class ComparisonTracker:
         *,
         retain_trace: bool = False,
         distribution_only: bool = False,
+        mechanism_tracking: bool = False,
     ) -> None:
         identities = sorted(record.identity for record in records)
         if identities != list(range(len(records))):
@@ -101,6 +103,7 @@ class ComparisonTracker:
         self._active_in = [0] * self._n
         self._edges: set[tuple[int, int]] = set()
         self._distribution_only = distribution_only
+        self._mechanism_tracking = mechanism_tracking
         self._edge_bits = [0] * self._n
         self._fast_in_degree = [0] * self._n
         self._fast_out_degree = [0] * self._n
@@ -130,6 +133,19 @@ class ComparisonTracker:
         self._current_auxiliary_storage = 0
         self._peak_auxiliary_storage = 0
         self._auxiliary_storage_comparison_sum = 0
+        self._mechanism_degrees = [0] * self._n
+        self._mechanism_last_strength_change = [0] * self._n
+        self._mechanism_selection_counts: dict[int, int] = {}
+        self._mechanism_opportunities: dict[int, int] = {}
+        self._mechanism_snapshots: list[dict[str, float | int]] = []
+        self._mechanism_next_checkpoint = 1
+        self._representative_counts = [0] * self._n
+        self._representative_span_sum = [0] * self._n
+        self._representative_max_span = [0] * self._n
+        self._representative_first_event = [-1] * self._n
+        self._representative_last_event = [-1] * self._n
+        self._representative_kinds: dict[str, int] = {}
+        self._mechanism_finalized = False
 
     @property
     def comparison_count(self) -> int:
@@ -171,6 +187,18 @@ class ComparisonTracker:
     def compare(self, left: Record, right: Record) -> int:
         """Compare two records, record the event, and return -1 or 1."""
         self._auxiliary_storage_comparison_sum += self._current_auxiliary_storage
+        if self._mechanism_tracking:
+            time = self._comparison_count
+            for identity in (left.identity, right.identity):
+                strength = self._participation[identity]
+                elapsed = time + 1 - self._mechanism_last_strength_change[identity]
+                self._mechanism_opportunities[strength] = (
+                    self._mechanism_opportunities.get(strength, 0) + elapsed
+                )
+                self._mechanism_selection_counts[strength] = (
+                    self._mechanism_selection_counts.get(strength, 0) + 1
+                )
+                self._mechanism_last_strength_change[identity] = time + 1
         if left.identity == right.identity:
             raise ValueError("a record cannot be compared with itself")
         if left.key < right.key:
@@ -187,9 +215,7 @@ class ComparisonTracker:
             self._seen_pairs.add(pair)
 
         implied = (
-            False
-            if self._distribution_only
-            else bool(self._descendants[smaller] & (1 << larger))
+            False if self._distribution_only else bool(self._descendants[smaller] & (1 << larger))
         )
         edge = (smaller, larger)
         if self._distribution_only:
@@ -210,7 +236,9 @@ class ComparisonTracker:
         rank_distance = abs(self._ranks[left.identity] - self._ranks[right.identity])
         self._participation[left.identity] += 1
         self._participation[right.identity] += 1
-        self._rank_distance_counts[rank_distance] = self._rank_distance_counts.get(rank_distance, 0) + 1
+        self._rank_distance_counts[rank_distance] = (
+            self._rank_distance_counts.get(rank_distance, 0) + 1
+        )
         self._rank_distance_sum += rank_distance
         self._critical_comparisons += int(rank_distance == 1)
         self._long_range_comparisons += int(2 * rank_distance >= max(1, self._n - 1))
@@ -246,7 +274,164 @@ class ComparisonTracker:
                     retired_active_edges=retired,
                 )
             )
+        if self._mechanism_tracking:
+            if new_edge:
+                self._mechanism_degrees[smaller] += 1
+                self._mechanism_degrees[larger] += 1
+            if self._comparison_count == self._mechanism_next_checkpoint:
+                self._capture_mechanism_snapshot()
+                self._mechanism_next_checkpoint *= 2
         return result
+
+    def compare_representative(
+        self,
+        representative: Record,
+        other: Record,
+        *,
+        span_size: int,
+        kind: str,
+    ) -> int:
+        """Compare while marking one endpoint as an algorithmic representative."""
+        result = self.compare(representative, other)
+        if self._mechanism_tracking:
+            identity = representative.identity
+            event = self._comparison_count
+            self._representative_counts[identity] += 1
+            self._representative_span_sum[identity] += max(1, span_size)
+            self._representative_max_span[identity] = max(
+                self._representative_max_span[identity], max(1, span_size)
+            )
+            if self._representative_first_event[identity] < 0:
+                self._representative_first_event[identity] = event
+            self._representative_last_event[identity] = event
+            self._representative_kinds[kind] = self._representative_kinds.get(kind, 0) + 1
+        return result
+
+    @staticmethod
+    def _concentration(values: list[int]) -> tuple[float, float, float, float]:
+        total = sum(values)
+        if not values or total == 0:
+            return 0.0, 0.0, 0.0, 0.0
+        ordered = sorted(values)
+        n = len(ordered)
+        weighted = sum((index + 1) * value for index, value in enumerate(ordered))
+        gini = (2 * weighted) / (n * total) - (n + 1) / n
+        cumulative = 0
+        p80 = 1.0
+        for count, value in enumerate(reversed(ordered), 1):
+            cumulative += value
+            if cumulative >= 0.8 * total:
+                p80 = count / n
+                break
+        entropy = -sum((value / total) * math.log(value / total) for value in values if value)
+        normalized_entropy = entropy / math.log(n) if n > 1 else 0.0
+        return gini, p80, normalized_entropy, max(values) / total
+
+    def _capture_mechanism_snapshot(self) -> None:
+        degree = self._concentration(self._mechanism_degrees)
+        strength = self._concentration(self._participation)
+        self._mechanism_snapshots.append(
+            {
+                "comparison_count": self._comparison_count,
+                "degree_gini": degree[0],
+                "degree_p80_fraction": degree[1],
+                "degree_normalized_entropy": degree[2],
+                "maximum_degree_share": degree[3],
+                "strength_gini": strength[0],
+                "strength_p80_fraction": strength[1],
+                "strength_normalized_entropy": strength[2],
+                "maximum_strength_share": strength[3],
+            }
+        )
+
+    @staticmethod
+    def _pearson(left: list[float], right: list[float]) -> float:
+        if len(left) < 2:
+            return 0.0
+        mean_left = sum(left) / len(left)
+        mean_right = sum(right) / len(right)
+        numerator = sum((x - mean_left) * (y - mean_right) for x, y in zip(left, right))
+        denominator = math.sqrt(
+            sum((x - mean_left) ** 2 for x in left) * sum((y - mean_right) ** 2 for y in right)
+        )
+        return numerator / denominator if denominator else 0.0
+
+    def mechanism_summary(self) -> dict[str, Any]:
+        if not self._mechanism_tracking:
+            raise ValueError("mechanism tracking was disabled")
+        if not self._mechanism_finalized:
+            total_time = self._comparison_count
+            for identity, strength in enumerate(self._participation):
+                elapsed = total_time - self._mechanism_last_strength_change[identity]
+                self._mechanism_opportunities[strength] = (
+                    self._mechanism_opportunities.get(strength, 0) + elapsed
+                )
+            if not self._mechanism_snapshots or (
+                self._mechanism_snapshots[-1]["comparison_count"] != total_time
+            ):
+                self._capture_mechanism_snapshot()
+            self._mechanism_finalized = True
+        representative_total = sum(self._representative_counts)
+        representatives = [i for i, count in enumerate(self._representative_counts) if count]
+        exposure = self._concentration(self._representative_counts)
+        lifetimes = [
+            self._representative_last_event[i] - self._representative_first_event[i] + 1
+            for i in representatives
+        ]
+        mean_spans = [
+            self._representative_span_sum[i] / self._representative_counts[i]
+            for i in representatives
+        ]
+        return {
+            "schema_version": 1,
+            "snapshots": self._mechanism_snapshots,
+            "attachment_kernel": [
+                {
+                    "current_strength": strength,
+                    "endpoint_selections": self._mechanism_selection_counts.get(strength, 0),
+                    "node_event_opportunities": opportunities,
+                    "selection_rate": (
+                        self._mechanism_selection_counts.get(strength, 0) / opportunities
+                        if opportunities
+                        else 0.0
+                    ),
+                }
+                for strength, opportunities in sorted(self._mechanism_opportunities.items())
+            ],
+            "representative_comparison_count": representative_total,
+            "representative_comparison_fraction": (
+                representative_total / self._comparison_count if self._comparison_count else 0.0
+            ),
+            "representative_node_count": len(representatives),
+            "representative_node_fraction": len(representatives) / self._n if self._n else 0.0,
+            "representative_exposure_gini": exposure[0],
+            "representative_exposure_p80_fraction": exposure[1],
+            "maximum_representative_exposure_share": exposure[3],
+            "mean_represented_span": (
+                sum(self._representative_span_sum) / representative_total
+                if representative_total
+                else 0.0
+            ),
+            "maximum_represented_span": max(self._representative_max_span, default=0),
+            "mean_representative_lifetime_fraction": (
+                sum(lifetimes) / (len(lifetimes) * self._comparison_count)
+                if lifetimes and self._comparison_count
+                else 0.0
+            ),
+            "representative_exposure_degree_correlation": self._pearson(
+                [float(self._representative_counts[i]) for i in representatives],
+                [float(self._mechanism_degrees[i]) for i in representatives],
+            ),
+            "representative_exposure_strength_correlation": self._pearson(
+                [float(self._representative_counts[i]) for i in representatives],
+                [float(self._participation[i]) for i in representatives],
+            ),
+            "mean_span_degree_correlation": self._pearson(
+                mean_spans,
+                [float(self._mechanism_degrees[i]) for i in representatives],
+            ),
+            "representative_kind_counts": dict(sorted(self._representative_kinds.items())),
+        }
 
     def _add_to_transitive_closure(self, smaller: int, larger: int) -> tuple[int, int]:
         predecessors = self._ancestors[smaller] | (1 << smaller)
@@ -386,8 +571,7 @@ class ComparisonTracker:
             "algorithm": algorithm,
             "input": input_values,
             "nodes": [
-                {"identity": identity, "key": key}
-                for identity, key in enumerate(self._keys)
+                {"identity": identity, "key": key} for identity, key in enumerate(self._keys)
             ],
             "events": [asdict(event) for event in self._events],
             "summary": asdict(self.summary()),

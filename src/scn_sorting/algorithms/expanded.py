@@ -35,13 +35,22 @@ def shell_sort(items: list[Record], tracker: ComparisonTracker) -> None:
 
 
 def _sift_range(
-    items: list[Record], start: int, count: int, root: int, tracker: ComparisonTracker,
+    items: list[Record],
+    start: int,
+    count: int,
+    root: int,
+    tracker: ComparisonTracker,
 ) -> None:
     while 2 * root + 1 < count:
         child = 2 * root + 1
-        if child + 1 < count and tracker.compare(
-            items[start + child], items[start + child + 1],
-        ) < 0:
+        if (
+            child + 1 < count
+            and tracker.compare(
+                items[start + child],
+                items[start + child + 1],
+            )
+            < 0
+        ):
             child += 1
         if tracker.compare(items[start + root], items[start + child]) >= 0:
             return
@@ -50,7 +59,10 @@ def _sift_range(
 
 
 def _heap_sort_range(
-    items: list[Record], start: int, end: int, tracker: ComparisonTracker,
+    items: list[Record],
+    start: int,
+    end: int,
+    tracker: ComparisonTracker,
 ) -> None:
     count = end - start + 1
     for root in range(count // 2 - 1, -1, -1):
@@ -128,6 +140,83 @@ def quick_sort_deterministic_random(items: list[Record], tracker: ComparisonTrac
             tracker.allocate_auxiliary_storage(2)
 
 
+def _stable_multipivot_sort(
+    items: list[Record], tracker: ComparisonTracker, *, pivot_count: int
+) -> None:
+    """Stable recursive partitioning with a controlled number of representatives."""
+    if pivot_count < 1:
+        raise ValueError("pivot_count must be positive")
+
+    def sort_values(values: list[Record]) -> list[Record]:
+        if len(values) < 2:
+            return values[:]
+        count = min(pivot_count, len(values) - 1)
+        pivots = values[:count]
+        tracker.allocate_auxiliary_storage(len(values))
+        tracker.record_movements(len(values))
+        for index in range(1, len(pivots)):
+            pivot = pivots[index]
+            position = index
+            while (
+                position > 0
+                and tracker.compare_representative(
+                    pivots[position - 1],
+                    pivot,
+                    span_size=len(values),
+                    kind=f"multipivot-{pivot_count}-order",
+                )
+                > 0
+            ):
+                pivots[position] = pivots[position - 1]
+                tracker.record_movements(1)
+                position -= 1
+            pivots[position] = pivot
+            tracker.record_movements(1)
+        pivot_identities = {pivot.identity for pivot in pivots}
+        buckets: list[list[Record]] = [[] for _ in range(count + 1)]
+        for value in values:
+            if value.identity in pivot_identities:
+                continue
+            lower, upper = 0, count
+            while lower < upper:
+                middle = (lower + upper) // 2
+                comparison = tracker.compare_representative(
+                    pivots[middle],
+                    value,
+                    span_size=len(values),
+                    kind=f"multipivot-{pivot_count}",
+                )
+                if comparison < 0:
+                    lower = middle + 1
+                else:
+                    upper = middle
+            buckets[lower].append(value)
+            tracker.record_movements(1)
+        result: list[Record] = []
+        for index, bucket in enumerate(buckets):
+            result.extend(sort_values(bucket))
+            if index < count:
+                result.append(pivots[index])
+        tracker.record_movements(len(result))
+        tracker.release_auxiliary_storage(len(values))
+        return result
+
+    items[:] = sort_values(items)
+    tracker.record_movements(len(items))
+
+
+def quick_sort_multipivot_1(items: list[Record], tracker: ComparisonTracker) -> None:
+    _stable_multipivot_sort(items, tracker, pivot_count=1)
+
+
+def quick_sort_multipivot_2(items: list[Record], tracker: ComparisonTracker) -> None:
+    _stable_multipivot_sort(items, tracker, pivot_count=2)
+
+
+def quick_sort_multipivot_4(items: list[Record], tracker: ComparisonTracker) -> None:
+    _stable_multipivot_sort(items, tracker, pivot_count=4)
+
+
 def tournament_sort(items: list[Record], tracker: ComparisonTracker) -> None:
     """Repeated-min tournament using an explicit complete winner tree."""
     n = len(items)
@@ -151,9 +240,7 @@ def tournament_sort(items: list[Record], tracker: ComparisonTracker) -> None:
         tree[node] = winner(tree[2 * node], tree[2 * node + 1])
         if tree[node] is not None:
             tracker.record_movements(1)
-    leaf_by_identity = {
-        value.identity: leaf_count + index for index, value in enumerate(items)
-    }
+    leaf_by_identity = {value.identity: leaf_count + index for index, value in enumerate(items)}
     for output in range(n):
         minimum = tree[1]
         assert minimum is not None
@@ -175,6 +262,7 @@ class _TreeNode:
     left: _TreeNode | None = None
     right: _TreeNode | None = None
     height: int = 1
+    size: int = 1
 
 
 def _tree_sort(items: list[Record], tracker: ComparisonTracker, *, balanced: bool) -> None:
@@ -188,7 +276,13 @@ def _tree_sort(items: list[Record], tracker: ComparisonTracker, *, balanced: boo
         assert child is not None
         node.right, child.left = child.left, node
         node.height = 1 + max(height(node.left), height(node.right))
+        node.size = (
+            1 + (node.left.size if node.left else 0) + (node.right.size if node.right else 0)
+        )
         child.height = 1 + max(height(child.left), height(child.right))
+        child.size = (
+            1 + (child.left.size if child.left else 0) + (child.right.size if child.right else 0)
+        )
         return child
 
     def rotate_right(node: _TreeNode) -> _TreeNode:
@@ -196,7 +290,13 @@ def _tree_sort(items: list[Record], tracker: ComparisonTracker, *, balanced: boo
         assert child is not None
         node.left, child.right = child.right, node
         node.height = 1 + max(height(node.left), height(node.right))
+        node.size = (
+            1 + (node.left.size if node.left else 0) + (node.right.size if node.right else 0)
+        )
         child.height = 1 + max(height(child.left), height(child.right))
+        child.size = (
+            1 + (child.left.size if child.left else 0) + (child.right.size if child.right else 0)
+        )
         return child
 
     def insert(node: _TreeNode | None, value: Record) -> _TreeNode:
@@ -204,12 +304,17 @@ def _tree_sort(items: list[Record], tracker: ComparisonTracker, *, balanced: boo
             tracker.allocate_auxiliary_storage(1)
             tracker.record_movements(1)
             return _TreeNode(value)
-        comparison = tracker.compare(value, node.value)
+        comparison = -tracker.compare_representative(
+            node.value, value, span_size=node.size, kind="tree-search"
+        )
         if comparison < 0:
             node.left = insert(node.left, value)
         else:
             node.right = insert(node.right, value)
         node.height = 1 + max(height(node.left), height(node.right))
+        node.size = (
+            1 + (node.left.size if node.left else 0) + (node.right.size if node.right else 0)
+        )
         if not balanced:
             return node
         balance = height(node.left) - height(node.right)

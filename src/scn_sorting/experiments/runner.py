@@ -28,6 +28,7 @@ def run_sort(
     *,
     retain_trace: bool = False,
     distribution_only: bool = False,
+    mechanism_tracking: bool = False,
 ) -> SortRun:
     try:
         sort_function = ALGORITHMS[algorithm]
@@ -38,6 +39,7 @@ def run_sort(
         records,
         retain_trace=retain_trace,
         distribution_only=distribution_only,
+        mechanism_tracking=mechanism_tracking,
     )
     sort_function(records, tracker)
     assert_sorted(records)

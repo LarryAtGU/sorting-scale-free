@@ -8,6 +8,9 @@ from scn_sorting.algorithms.expanded import (
     introsort,
     odd_even_merge_network,
     quick_sort_deterministic_random,
+    quick_sort_multipivot_1,
+    quick_sort_multipivot_2,
+    quick_sort_multipivot_4,
     shell_sort,
     tournament_sort,
     tree_sort_avl,
@@ -54,9 +57,21 @@ def quick_sort(items: list[Record], tracker: ComparisonTracker) -> None:
         lower = start + 1
         upper = end
         while True:
-            while lower <= upper and tracker.compare(pivot, items[lower]) > 0:
+            while (
+                lower <= upper
+                and tracker.compare_representative(
+                    pivot, items[lower], span_size=end - start + 1, kind="pivot"
+                )
+                > 0
+            ):
                 lower += 1
-            while lower <= upper and tracker.compare(pivot, items[upper]) < 0:
+            while (
+                lower <= upper
+                and tracker.compare_representative(
+                    pivot, items[upper], span_size=end - start + 1, kind="pivot"
+                )
+                < 0
+            ):
                 upper -= 1
             if lower > upper:
                 break
@@ -93,7 +108,12 @@ def binary_insertion_sort(items: list[Record], tracker: ComparisonTracker) -> No
         lower, upper = 0, index
         while lower < upper:
             middle = (lower + upper) // 2
-            if tracker.compare(items[middle], value) > 0:
+            if (
+                tracker.compare_representative(
+                    items[middle], value, span_size=upper - lower, kind="binary-midpoint"
+                )
+                > 0
+            ):
                 upper = middle
             else:
                 lower = middle + 1
@@ -126,7 +146,11 @@ def selection_sort(items: list[Record], tracker: ComparisonTracker) -> None:
 
 
 def _merge(
-    items: list[Record], auxiliary: list[Record | None], start: int, middle: int, end: int,
+    items: list[Record],
+    auxiliary: list[Record | None],
+    start: int,
+    middle: int,
+    end: int,
     tracker: ComparisonTracker,
 ) -> None:
     auxiliary[start:end] = items[start:end]
@@ -184,7 +208,10 @@ def merge_sort_bottom_up(items: list[Record], tracker: ComparisonTracker) -> Non
 
 
 def _median_of_three(
-    first: Record, second: Record, third: Record, tracker: ComparisonTracker,
+    first: Record,
+    second: Record,
+    third: Record,
+    tracker: ComparisonTracker,
 ) -> tuple[Record, Record, Record]:
     """Return low, median, high using no repeated pair comparison."""
     if tracker.compare(first, second) < 0:
@@ -246,20 +273,53 @@ def quick_sort_dual_pivot(items: list[Record], tracker: ComparisonTracker) -> No
         tracker.release_auxiliary_storage(2)
         if start >= end:
             continue
-        if tracker.compare(items[start], items[end]) > 0:
+        if (
+            tracker.compare_representative(
+                items[start], items[end], span_size=end - start + 1, kind="dual-pivot"
+            )
+            > 0
+        ):
             _swap(items, start, end, tracker)
         lower_pivot, upper_pivot = items[start], items[end]
         lower, scan, upper = start + 1, start + 1, end - 1
         while scan <= upper:
-            if tracker.compare(items[scan], lower_pivot) < 0:
+            if (
+                tracker.compare_representative(
+                    lower_pivot, items[scan], span_size=end - start + 1, kind="dual-pivot"
+                )
+                > 0
+            ):
                 _swap(items, scan, lower, tracker)
                 lower += 1
-            elif tracker.compare(items[scan], upper_pivot) > 0:
-                while scan < upper and tracker.compare(items[upper], upper_pivot) > 0:
+            elif (
+                tracker.compare_representative(
+                    upper_pivot, items[scan], span_size=end - start + 1, kind="dual-pivot"
+                )
+                < 0
+            ):
+                while (
+                    scan < upper
+                    and tracker.compare_representative(
+                        upper_pivot,
+                        items[upper],
+                        span_size=end - start + 1,
+                        kind="dual-pivot",
+                    )
+                    < 0
+                ):
                     upper -= 1
                 _swap(items, scan, upper, tracker)
                 upper -= 1
-                if scan <= upper and tracker.compare(items[scan], lower_pivot) < 0:
+                if (
+                    scan <= upper
+                    and tracker.compare_representative(
+                        lower_pivot,
+                        items[scan],
+                        span_size=end - start + 1,
+                        kind="dual-pivot",
+                    )
+                    > 0
+                ):
                     _swap(items, scan, lower, tracker)
                     lower += 1
             scan += 1
@@ -371,6 +431,9 @@ ALGORITHMS: dict[str, SortFunction] = {
     "quick-dual-pivot": quick_sort_dual_pivot,
     "quick-median-three": quick_sort_median_three,
     "quick-random": quick_sort_deterministic_random,
+    "quick-multipivot-1": quick_sort_multipivot_1,
+    "quick-multipivot-2": quick_sort_multipivot_2,
+    "quick-multipivot-4": quick_sort_multipivot_4,
     "selection": selection_sort,
     "shell": shell_sort,
     "tournament": tournament_sort,

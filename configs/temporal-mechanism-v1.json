@@ -1,0 +1,23 @@
+{
+  "protocol_version": 1,
+  "frozen_on": "2026-09-16",
+  "label": "temporal-mechanism-v1",
+  "algorithms": [
+    "tree-unbalanced",
+    "tree-avl",
+    "quick",
+    "quick-dual-pivot",
+    "merge-top-down",
+    "binary-insertion",
+    "heap",
+    "bitonic-network",
+    "quick-multipivot-1",
+    "quick-multipivot-2",
+    "quick-multipivot-4"
+  ],
+  "sizes": [128, 256, 512, 1024],
+  "first_seed": 1,
+  "last_seed": 200,
+  "expected_executions": 8800,
+  "tracking_profile": "temporal-mechanism"
+}

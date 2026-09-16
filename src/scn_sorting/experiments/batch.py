@@ -49,8 +49,14 @@ def run_record(
     permutation: tuple[int, ...],
     *,
     distribution_only: bool = False,
+    mechanism_tracking: bool = False,
 ) -> dict[str, object]:
-    run = run_sort(algorithm, permutation, distribution_only=distribution_only)
+    run = run_sort(
+        algorithm,
+        permutation,
+        distribution_only=distribution_only,
+        mechanism_tracking=mechanism_tracking,
+    )
     summary = run.summary
     degree_mean = summary.mean_degree
     degree_variance = (
@@ -65,7 +71,7 @@ def run_record(
     peak_storage_fraction = summary.peak_auxiliary_storage / n if n else 0.0
     mean_storage_fraction = summary.mean_auxiliary_storage / n if n else 0.0
     combined_cost = comparison_excess + movements_per_node + peak_storage_fraction
-    return {
+    record: dict[str, object] = {
         "algorithm": algorithm,
         "n": n,
         "seed": seed,
@@ -119,6 +125,9 @@ def run_record(
         "information_gain_histogram": dict(summary.information_gain_histogram),
         "degree_histogram": dict(sorted(Counter(summary.total_degree).items())),
     }
+    if mechanism_tracking:
+        record["mechanism"] = run.tracker.mechanism_summary()
+    return record
 
 
 def summarize(records: list[dict[str, object]]) -> list[dict[str, object]]:
@@ -236,7 +245,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=Path("data/generated"))
     parser.add_argument("--output", type=Path, default=Path("data/results"))
-    parser.add_argument("--algorithms", nargs="+", choices=sorted(ALGORITHMS), default=sorted(ALGORITHMS))
+    parser.add_argument(
+        "--algorithms", nargs="+", choices=sorted(ALGORITHMS), default=sorted(ALGORITHMS)
+    )
     parser.add_argument("--sizes", nargs="+", type=int, default=list(PRODUCTION_SIZES))
     parser.add_argument("--first-seed", type=int, default=1)
     parser.add_argument("--last-seed", type=int, default=1000)
@@ -247,7 +258,11 @@ def main() -> None:
         help="skip transitive-closure mechanism metrics for scalable degree-distribution runs",
     )
     arguments = parser.parse_args()
-    if arguments.first_seed < 1 or arguments.last_seed > 1000 or arguments.first_seed > arguments.last_seed:
+    if (
+        arguments.first_seed < 1
+        or arguments.last_seed > 1000
+        or arguments.first_seed > arguments.last_seed
+    ):
         parser.error("seed range must satisfy 1 <= first <= last <= 1000")
 
     raw_path = arguments.output / f"batch-{arguments.label}-runs.jsonl.gz"
@@ -265,15 +280,12 @@ def main() -> None:
         and arguments.first_seed <= int(record["seed"]) <= arguments.last_seed
     ]
     wrong_profile = [
-        record
-        for record in records
-        if record.get("tracking_profile", "exact") != requested_profile
+        record for record in records if record.get("tracking_profile", "exact") != requested_profile
     ]
     if wrong_profile:
         parser.error(f"checkpoint tracking profile does not match {requested_profile!r}")
     completed = {
-        (str(record["algorithm"]), int(record["n"]), int(record["seed"]))
-        for record in records
+        (str(record["algorithm"]), int(record["n"]), int(record["seed"])) for record in records
     }
     if completed:
         print(f"resuming from {len(completed)} completed trials in {checkpoint_path}", flush=True)
