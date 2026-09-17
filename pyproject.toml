@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scn-sorting-experiments"
-version = "0.1.0"
+version = "1.3.0"
 description = "Experiments on comparison-sort efficiency and sorting comparison networks"
 readme = "README.md"
 requires-python = ">=3.11"

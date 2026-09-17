@@ -52,6 +52,20 @@ scn-test-randomness
 The committed manifests under `data/generated/` identify the generated files;
 the permutations themselves are omitted because they are exactly reproducible.
 
+## Build the Zenodo archive
+
+GitHub-generated source ZIP files may contain Git LFS pointer text instead of
+the two raw datasets. Build the Zenodo upload from a checkout in which
+`git lfs pull` has completed:
+
+```bash
+python scripts/build_zenodo_archive.py --version 1.3.0
+```
+
+The command runs the archive audit, rejects LFS pointer files, and writes
+`dist/sorting-scale-free-1.3.0-complete.zip`. Upload this complete ZIP to
+Zenodo rather than relying on GitHub's automatically generated source ZIP.
+
 ## Run the experiments
 
 The observational configuration is `configs/paper-final-19-algorithms.json`.
@@ -82,9 +96,12 @@ python scripts/analyze_theory_validation.py
 python scripts/make_vector_paper_figures.py
 ```
 
-The first three commands reproduce the deposited JSON analysis outputs. The
-last command creates the ten vector manuscript figures in the sibling
-`over-leaf/figures/` directory.
+The first three commands reproduce the deposited JSON analysis outputs, apart
+from possible platform-dependent differences in individual Monte Carlo
+bootstrap replicates. Such a difference can change a reported bootstrap
+proportion by one replicate without affecting the underlying fitted result or
+the paper's conclusions. The last command creates the ten vector manuscript
+figures in the repository's `figures/` directory.
 
 ## Deposited data
 
@@ -103,5 +120,5 @@ See `data/README.md` for exact filenames and integrity commands.
 ## Licences and citation
 
 Code is released under the MIT License (`LICENSE-CODE`). Data are released
-under CC BY 4.0 (`LICENSE-DATA`). Citation metadata are in `CITATION.cff`; add
-the new version and DOI there after the cleaned data-complete archive is issued.
+under CC BY 4.0 (`LICENSE-DATA`). Citation metadata for release `v1.3.0` are in
+`CITATION.cff`; the Zenodo record supplies the persistent DOI.

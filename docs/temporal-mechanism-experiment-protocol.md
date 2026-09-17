@@ -2,7 +2,7 @@
 
 **Version:** 1  
 **Version:** final archived protocol
-**Status:** targeted mechanism and intervention experiment for the major revision
+**Status:** targeted mechanism and intervention experiment
 
 ## Questions
 

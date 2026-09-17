@@ -30,3 +30,4 @@ data/results/temporal-mechanism-v1/*
 !data/results/temporal-mechanism-v1/summary.csv
 figures/*
 !figures/.gitkeep
+dist/

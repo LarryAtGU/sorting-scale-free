@@ -19,8 +19,7 @@ from matplotlib.ticker import LogFormatterMathtext
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "data/results"
 TEMPORAL = RESULTS / "temporal-mechanism-v1"
-PAPER = ROOT.parent / "over-leaf"
-OUT = PAPER / "figures"
+OUT = ROOT / "figures"
 
 SUMMARY = list(csv.DictReader((RESULTS / "batch-paper-final-19-algorithms-summary.csv").open()))
 VALIDATION = json.loads((RESULTS / "paper-final-statistical-validation.json").read_text())
@@ -281,7 +280,7 @@ def finite_size_alpha() -> None:
 
 def main() -> None:
     configure()
-    OUT.mkdir(exist_ok=True)
+    OUT.mkdir(parents=True, exist_ok=True)
     exact_bst(); temporal_concentration(); representative_exposure(); attachment_kernel(); multipivot()
     correlation_by_size(); resource_decomposition(); efficiency_scatter(); block_correlations(); finite_size_alpha()
     print("wrote ten vector PDF figures")
