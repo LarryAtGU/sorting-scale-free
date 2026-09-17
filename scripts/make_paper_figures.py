@@ -86,18 +86,27 @@ def save_scatter(rows, validation):
     tail={x['algorithm']:x for x in validation['tail_validation']}
     data=[(r['algorithm'],float(r['combined_efficiency_equal_weights_mean']),tail[r['algorithm']]['power_vs_exponential_llr_per_observation']) for r in rows if int(r['n'])==4096]
     xmax=max(x for _,x,_ in data)*1.08; ymin=-.06; ymax=.49
-    overlay=axes(draw,box,"Combined efficiency η (higher is better)","PL–Exp mean log-likelihood difference",[(f"{x:.2f}",x/xmax) for x in (0,.05,.10,.15,.20,.25)],[(f"{y:.1f}",(y-ymin)/(ymax-ymin)) for y in (-.0,.1,.2,.3,.4)])
+    overlay=axes(draw,box,"Combined efficiency η (higher is better)","PL–Exp mean log-likelihood difference",[(f"{x:.2f}",x/xmax) for x in (0,.05,.10,.15,.20,.25)],[("0.0" if y == 0 else f"{y:.1f}",(y-ymin)/(ymax-ymin)) for y in (0,.1,.2,.3,.4)])
     image.paste(overlay,(65,box[1]),overlay)
-    abbreviations={"binary-insertion":"Binary ins.","bitonic-network":"Bitonic","bubble":"Bubble","heap":"Heap","insertion":"Insertion","introsort":"Intro","merge-bottom-up":"Merge BU","merge-insertion":"Merge ins.","merge-top-down":"Merge TD","odd-even-merge-network":"Odd-even","quick":"Quick","quick-dual-pivot":"Quick dual","quick-median-three":"Quick median","quick-random":"Quick random","selection":"Selection","shell":"Shell","tournament":"Tournament","tree-avl":"AVL tree","tree-unbalanced":"BST"}
+    abbreviations={"binary-insertion":"Binary ins.","bitonic-network":"Bitonic","bubble":"Bubble","heap":"Heap","insertion":"Insertion","introsort":"Intro","merge-bottom-up":"Merge BU","merge-insertion":"Merge ins.","merge-top-down":"Merge TD","odd-even-merge-network":"Odd-even","quick":"Quick","quick-dual-pivot":"Quick dual","quick-median-three":"Quick median","quick-random":"Quick deterministic","selection":"Selection","shell":"Shell","tournament":"Tournament","tree-avl":"AVL tree","tree-unbalanced":"BST"}
+    labelled={"binary-insertion","bitonic-network","merge-top-down","quick","quick-dual-pivot","quick-median-three","quick-random","introsort","tree-avl","tree-unbalanced"}
     occupied=[]
     for name,x,y in sorted(data,key=lambda item:item[2],reverse=True):
         px=box[0]+x/xmax*(box[2]-box[0]); py=box[3]-(y-ymin)/(ymax-ymin)*(box[3]-box[1]); color=COLORS[family(name)]
         draw.ellipse((px-9,py-9,px+9,py+9),fill=color,outline="white",width=2)
+        if name not in labelled:
+            continue
         ly=py-13
         while any(abs(px-ox)<130 and abs(ly-oy)<25 for ox,oy in occupied): ly+=27
         occupied.append((px,ly)); draw.text((px+12,ly-10),abbreviations[name],fill=color,font=font(18,True))
-    rho=validation['primary']['spearman']; interval=validation['primary']['descriptive_bootstrap_95_percentile_interval']
-    draw.text((260,1040),f"Spearman rs = {rho:.3f}; descriptive algorithm-bootstrap interval [{interval[0]:.3f}, {interval[1]:.3f}]",fill="#344054",font=font(24))
+    rho=validation['primary']['spearman']
+    legend_x, legend_y = 1230, 650
+    family_labels = [("pivot", "Pivot"), ("tree", "Tree"), ("merge", "Merge/tournament"), ("network", "Sorting network"), ("other", "Other")]
+    for index, (group, label) in enumerate(family_labels):
+        y = legend_y + 42 * index
+        draw.ellipse((legend_x, y, legend_x + 18, y + 18), fill=COLORS[group])
+        draw.text((legend_x + 30, y - 5), label, fill="#344054", font=font(20, True))
+    draw.text((560,1040),f"Spearman rs = {rho:.3f}; 19 algorithm means",fill="#344054",font=font(24))
     image.save(OUTPUT / "efficiency-llr-scatter.png",dpi=(180,180))
 
 

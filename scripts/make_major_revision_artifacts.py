@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PAPER = ROOT.parent / "over-leaf"
 ANALYSIS = json.loads((ROOT / "data/results/paper-major-revision-analysis.json").read_text())
 VALIDATION = json.loads((ROOT / "data/results/paper-final-statistical-validation.json").read_text())
+SCIENTIFIC = json.loads((ROOT / "data/results/paper-scientific-revision-analysis.json").read_text())
 ROWS = list(csv.DictReader((ROOT / "data/results/batch-paper-final-19-algorithms-summary.csv").open()))
 FONT = "/System/Library/Fonts/Supplemental/Arial.ttf"
 FONT_BOLD = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
@@ -40,20 +41,25 @@ def resource_figure():
 
 
 def finite_size_figure():
-    image,draw=base("Fitted exponent approaches the random-BST prediction","Optimized-cutoff aggregate fits; 1,000 executions per cell")
+    image,draw=base("Finite-size exponent is predicted by the exact BST distribution","The same optimized-cutoff fit is applied to empirical and parameter-free exact distributions")
     names={"quick":"Historical Hoare Quick","tree-unbalanced":"Unbalanced BST","tree-avl":"AVL tree"};colors={"quick":"#1769aa","tree-unbalanced":"#2e7d32","tree-avl":"#ef6c00"};box=(220,180,1650,920);sizes=[128,256,512,1024,2048,4096]
     for y in [2,2.2,2.4,2.6]:
         py=box[3]-(y-1.9)/.8*(box[3]-box[1]);draw.line((box[0],py,box[2],py),fill="#e4e7ec",width=2);draw.text((150,py-13),f"{y:.1f}",fill="#344054",font=font(21))
     for i,n in enumerate(sizes):
         x=box[0]+i/(len(sizes)-1)*(box[2]-box[0]);draw.text((x-35,box[3]+18),str(n),fill="#344054",font=font(21))
-    theoretical=box[3]-(2-1.9)/.8*(box[3]-box[1]);draw.line((box[0],theoretical,box[2],theoretical),fill="#111827",width=3)
-    draw.text((box[0]+15,theoretical-36),"subtree-size prediction alpha = 2",fill="#111827",font=font(20,True))
+    theoretical=box[3]-(2-1.9)/.8*(box[3]-box[1]);draw.line((box[0],theoretical,box[2],theoretical),fill="#667085",width=2)
     for index,(name,label) in enumerate(names.items()):
         rows=sorted((r for r in ANALYSIS["finite_size_diagnostics"] if r["algorithm"]==name),key=lambda r:r["n"]);points=[]
         for i,row in enumerate(rows): points.append((box[0]+i/(len(rows)-1)*(box[2]-box[0]),box[3]-(row["alpha"]-1.9)/.8*(box[3]-box[1])))
         draw.line(points,fill=colors[name],width=6)
         for x,y in points: draw.ellipse((x-9,y-9,x+9,y+9),fill=colors[name])
         draw.line((1120,210+index*42,1180,210+index*42),fill=colors[name],width=6);draw.text((1195,196+index*42),label,fill=colors[name],font=font(22,True))
+    theory_points=[]
+    for i,row in enumerate(SCIENTIFIC["exact_bst_tail_fits"]):
+        theory_points.append((box[0]+i/(len(sizes)-1)*(box[2]-box[0]),box[3]-(row["alpha"]-1.9)/.8*(box[3]-box[1])))
+    draw.line(theory_points,fill="#111827",width=4)
+    for x,y in theory_points: draw.rectangle((x-7,y-7,x+7,y+7),fill="#111827")
+    draw.line((1120,336,1180,336),fill="#111827",width=4);draw.text((1195,322),"Exact BST fit",fill="#111827",font=font(22,True))
     draw.text((760,995),"Input size n",fill="#172033",font=font(26));draw.text((75,520),"Fitted alpha",fill="#172033",font=font(26));image.save(PAPER/"figures/finite-size-alpha.png",dpi=(180,180))
 
 
@@ -72,10 +78,13 @@ def block_figure():
 def algorithm_table():
     tail={row["algorithm"]:row for row in VALIDATION["tail_validation"]};rows=[row for row in ROWS if row["n"]=="4096"]
     labels={"binary-insertion":"Binary insertion","bitonic-network":"Bitonic network","bubble":"Bubble","heap":"Heap","insertion":"Insertion","introsort":"Introsort","merge-bottom-up":"Merge bottom-up","merge-insertion":"Merge insertion","merge-top-down":"Merge top-down","odd-even-merge-network":"Odd-even network","quick":"Quick (Hoare)","quick-dual-pivot":"Quick dual-pivot","quick-median-three":"Quick median-3","quick-random":"Quick deterministic","selection":"Selection","shell":"Shell","tournament":"Tournament","tree-avl":"AVL tree","tree-unbalanced":"Unbalanced BST"}
-    lines=[r"\begin{landscape}",r"\begin{longtable}{lrrrrrrrrrrr}",r"\caption{Complete results at $n=4096$. LLR columns are mean log-likelihood differences per tail observation.}\label{tab:complete-results}\\",r"\toprule",r"Algorithm & $c$ & $w$ & $s$ & $\eta$ & $P_{80}$ & $x_{\min}$ & $\hat\alpha$ & tail \% & PL--Exp & PL--LN & $p_{boot}$\\",r"\midrule\endfirsthead",r"\toprule",r"Algorithm & $c$ & $w$ & $s$ & $\eta$ & $P_{80}$ & $x_{\min}$ & $\hat\alpha$ & tail \% & PL--Exp & PL--LN & $p_{boot}$\\",r"\midrule\endhead"]
+    lines=[r"\begin{table*}[tbp]",r"\centering",r"\scriptsize",r"\caption{Complete results at $n=4096$. $G_d$ is degree Gini; $P_{80}$ is a fraction (smaller is more concentrated); span is $\log_{10}(d_{\max}/x_{\min})$; LLR columns are mean log-likelihood differences per tail observation.}",r"\label{tab:complete-results}",r"\resizebox{\textwidth}{!}{%",r"\begin{tabular}{lrrrrrrrrrrrr}",r"\toprule",r"Algorithm & $c$ & $w$ & $s$ & $G_d$ & $P_{80}$ & $x_{\min}$ & $\hat\alpha$ & tail \% & span & PL--Exp & PL--LN & $p_{boot}$\\",r"\midrule"]
     for row in rows:
-        t=tail[row["algorithm"]];lines.append(f"{labels[row['algorithm']]} & {float(row['normalized_excess_comparisons_mean']):.3f} & {float(row['movements_per_node_mean']):.1f} & {float(row['peak_auxiliary_storage_fraction_mean']):.3f} & {float(row['combined_efficiency_equal_weights_mean']):.4f} & {100*float(row['degree_p80_fraction_mean']):.1f} & {t['xmin']} & {t['alpha']:.2f} & {100*t['tail_fraction']:.2f} & {t['power_vs_exponential_llr_per_observation']:.3f} & {t['power_vs_lognormal_llr_per_observation']:.4f} & {t['power_law_bootstrap_p']:.3f}\\\\")
-    lines += [r"\bottomrule",r"\end{longtable}",r"\end{landscape}"]
+        t=tail[row["algorithm"]]
+        maximum=max(map(int,json.loads(row["aggregate_degree_histogram"]).keys()))
+        span=__import__("math").log10(maximum/t["xmin"])
+        lines.append(f"{labels[row['algorithm']]} & {float(row['normalized_excess_comparisons_mean']):.3f} & {float(row['movements_per_node_mean']):.1f} & {float(row['peak_auxiliary_storage_fraction_mean']):.3f} & {float(row['degree_gini_mean']):.3f} & {float(row['degree_p80_fraction_mean']):.3f} & {t['xmin']} & {t['alpha']:.2f} & {100*t['tail_fraction']:.2f} & {span:.2f} & {t['power_vs_exponential_llr_per_observation']:.3f} & {t['power_vs_lognormal_llr_per_observation']:.4f} & {t['power_law_bootstrap_p']:.3f}\\\\")
+    lines += [r"\bottomrule",r"\end{tabular}%",r"}",r"\end{table*}"]
     (PAPER/"tables").mkdir(exist_ok=True);(PAPER/"tables/algorithm-results.tex").write_text("\n".join(lines)+"\n")
 
 

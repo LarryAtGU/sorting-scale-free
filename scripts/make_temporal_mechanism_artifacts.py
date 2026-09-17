@@ -57,7 +57,7 @@ def line_axes(draw, box, *, x_ticks, y_ticks, xlabel: str, ylabel: str):
         width = draw.textlength(label, font=font(19))
         draw.text((left - width - 14, y - 11), label, fill="#344054", font=font(19))
     draw.text(((left + right) / 2 - 80, bottom + 58), xlabel, fill="#172033", font=font(23))
-    draw.text((left - 135, (top + bottom) / 2 - 15), ylabel, fill="#172033", font=font(23))
+    draw.text((left, top - 38), ylabel, fill="#172033", font=font(23))
 
 
 def read_summary():
@@ -84,7 +84,7 @@ def closest_temporal_points(targets: list[float]):
 
 
 def temporal_figure() -> None:
-    targets = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+    targets = [0.2, 0.3, 0.5, 0.7, 1.0]
     values = closest_temporal_points(targets)
     selected = ["quick", "tree-unbalanced", "merge-top-down", "heap", "bitonic-network"]
     labels = {
@@ -95,22 +95,22 @@ def temporal_figure() -> None:
         "bitonic-network": "Bitonic network",
     }
     image, draw = canvas(
-        "Degree concentration during sorting",
-        "Mean over 200 matched permutations at n = 1024; early values include many zero-degree nodes",
+        "Late-stage degree concentration during sorting",
+        "Mean over 200 matched permutations at n = 1024; first 20% omitted",
     )
     box = (190, 165, 1690, 920)
     line_axes(
         draw,
         box,
-        x_ticks=[(f"{int(100 * x)}%", (math.log10(x) + 2) / 2) for x in targets],
+        x_ticks=[(f"{int(100 * x)}%", (x - 0.2) / 0.8) for x in targets],
         y_ticks=[(f"{x:.1f}", x) for x in (0, 0.2, 0.4, 0.6, 0.8, 1.0)],
-        xlabel="Fraction of comparisons completed (log scale)",
+        xlabel="Fraction of comparisons completed",
         ylabel="Degree Gini",
     )
     for index, algorithm in enumerate(selected):
         points = []
         for target in targets:
-            x = box[0] + (math.log10(target) + 2) / 2 * (box[2] - box[0])
+            x = box[0] + (target - 0.2) / 0.8 * (box[2] - box[0])
             y = box[3] - values[algorithm, target] * (box[3] - box[1])
             points.append((x, y))
         draw.line(points, fill=COLORS[algorithm], width=6)
@@ -196,8 +196,8 @@ def attachment_figure() -> None:
             if opportunities >= 1000 and selections:
                 binned[algorithm].append((2 ** (bucket + 0.5), selections / opportunities))
     image, draw = canvas(
-        "Conditional endpoint-selection rate",
-        "Pooled descriptive attachment kernel at n = 1024; logarithmic strength bins",
+        "Global endpoint-exposure rate",
+        "Pooled descriptive rate at n = 1024; eligibility is not conditioned out",
     )
     box = (220, 165, 1680, 920)
     xmin, xmax, ymin, ymax = 0, 3.4, -5, 0
@@ -315,23 +315,28 @@ def mechanism_table() -> None:
     }
     lookup = {row["algorithm"]: row for row in rows}
     lines = [
-        r"\begin{table}[ht]",
+        r"\begin{table*}[tbp]",
         r"\centering",
         r"\small",
-        r"\caption{Temporal-mechanism results at $n=1024$, averaged over 200 matched permutations. Smaller $P_{80}$ means greater concentration. $r_{ED}$ is the within-execution correlation between representative exposure and final degree, averaged across executions. Algorithms without a privileged record representative report zero exposure.}",
+        r"\caption{Temporal-mechanism results at $n=1024$, averaged over 200 matched permutations. Smaller $P_{80}$ means greater concentration. $\bar S_R$ is mean represented span, $\bar L_R$ is mean normalized representative lifetime, and $r_{Sd}$ correlates a representative's mean span with final degree. Dashes denote algorithms for which no representative role is defined.}",
         r"\label{tab:mechanism-results}",
-        r"\begin{tabular}{lrrrrrr}",
+        r"\begin{tabular}{lrrrrrrr}",
         r"\toprule",
-        r"Algorithm & $C/\log_2(n!)$ & $G_d$ & $P_{80}$ & $G_R$ & rep. nodes & $r_{ED}$\\",
+        r"Algorithm & $G_d$ & $P_{80}$ & $G_R$ & rep. nodes & $\bar S_R$ & $\bar L_R$ & $r_{Sd}$\\",
         r"\midrule",
     ]
     for algorithm in order:
         row = lookup[algorithm]
-        lines.append(
-            f"{labels[algorithm]} & {float(row['comparison_efficiency_ratio_mean']):.3f} & {float(row['degree_gini_mean']):.3f} & {float(row['degree_p80_fraction_mean']):.3f} & {float(row['representative_exposure_gini_mean']):.3f} & {100 * float(row['representative_node_fraction_mean']):.1f}\\% & {float(row['representative_exposure_degree_correlation_mean']):.3f}"
-            + r"\\"
-        )
-    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+        prefix = f"{labels[algorithm]} & {float(row['degree_gini_mean']):.3f} & {float(row['degree_p80_fraction_mean']):.3f}"
+        if float(row["representative_node_fraction_mean"]) == 0:
+            lines.append(prefix + r" & --- & --- & --- & --- & ---\\")
+        else:
+            lines.append(
+                prefix
+                + f" & {float(row['representative_exposure_gini_mean']):.3f} & {100 * float(row['representative_node_fraction_mean']):.1f}\\% & {float(row['mean_represented_span_mean']):.1f} & {float(row['mean_representative_lifetime_fraction_mean']):.4f} & {float(row['mean_span_degree_correlation_mean']):.3f}"
+                + r"\\"
+            )
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]
     (PAPER / "tables/mechanism-results.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
