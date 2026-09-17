@@ -1,22 +1,22 @@
-# Frozen confirmatory analysis protocol
+# Final observational analysis protocol
 
 **Protocol version:** 1  
-**Frozen:** 2026-09-14, before inspecting any 1,000-seed, 19-algorithm result  
+**Version:** final archived protocol
 **Production label:** `paper-final-19-algorithms`
 
 ## Status and purpose
 
-The earlier 100-seed experiments are exploratory. They were used to develop the
-measurements, select the algorithm panel, and formulate the hypotheses. The run
-defined here is confirmatory. Its definitions, primary analysis, sensitivity
-analyses, stopping rule, and reporting requirements are fixed before execution.
+The earlier 100-seed experiments were used to develop the measurements, select
+the algorithm panel, and formulate the hypotheses. This document records the
+definitions, primary analysis, sensitivity analyses, stopping rule, and
+reporting requirements used for the reported 1,000-seed experiment.
 
 No measurement, weight, tail-fitting rule, algorithm implementation, family
 classification, or exclusion rule may be changed after the production run starts
 without creating a new protocol version. Any post-protocol analysis must be
 identified as exploratory in the paper.
 
-## Frozen experimental design
+## Experimental design
 
 - Inputs are the existing deterministic SplitMix64/Fisher-Yates uniform
   permutations identified by `(n, seed)`.

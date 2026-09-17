@@ -1,8 +1,8 @@
 # Statistical validation extension
 
 **Extension version:** 1  
-**Frozen:** 2026-09-15, before computing the analyses defined below  
-**Status:** pre-specified post-confirmatory validation of the already frozen
+**Version:** final archived protocol
+**Status:** diagnostic validation of the observational
 `paper-final-19-algorithms` dataset
 
 ## Scope
@@ -13,7 +13,7 @@ All results defined here must be reported regardless of whether they strengthen
 or weaken the paper's hypothesis. Any later change is exploratory and requires a
 new extension version.
 
-## Frozen data
+## Input data
 
 Use only `batch-paper-final-19-algorithms-summary.csv` and, where execution-level
 uncertainty is required, its associated frozen run file. Do not rerun sorting,

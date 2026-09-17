@@ -1,19 +1,17 @@
 # Secondary analysis protocol
 
-**Version:** 1  
-**Frozen:** 2026-09-15, before computing the analyses specified here  
 **Input:** the completed `paper-final-19-algorithms` experiment only
 
-## Purpose and chronology
+## Purpose
 
-This protocol was specified after the original 19-algorithm endpoint was frozen.
+This protocol defines secondary analyses of the 19-algorithm endpoint.
 It does not redefine or replace that endpoint or the separately specified
 tail-validation extension. The analyses below assess resource decomposition,
 family dependence, cutoff sensitivity, execution-block dependence, and
 finite-size behavior, and must be reported regardless of direction or magnitude.
 
-No additional sorting algorithm will be added during this stage. A later,
-separately frozen experiment may introduce controlled implementation variants.
+No additional sorting algorithm is included in this analysis. The temporal
+experiment introduces controlled implementation variants separately.
 
 ## Mechanism families
 

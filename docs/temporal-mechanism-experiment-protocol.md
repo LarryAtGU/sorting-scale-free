@@ -1,7 +1,7 @@
 # Temporal representative-exposure experiment protocol
 
 **Version:** 1  
-**Frozen:** 2026-09-16, before production execution  
+**Version:** final archived protocol
 **Status:** targeted mechanism and intervention experiment for the major revision
 
 ## Questions
