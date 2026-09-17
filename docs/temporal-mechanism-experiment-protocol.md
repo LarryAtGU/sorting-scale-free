@@ -1,7 +1,6 @@
 # Temporal representative-exposure experiment protocol
 
 **Version:** 1  
-**Version:** final archived protocol
 **Status:** targeted mechanism and intervention experiment
 
 ## Questions

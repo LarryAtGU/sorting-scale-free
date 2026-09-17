@@ -1,7 +1,6 @@
 # Final observational analysis protocol
 
 **Protocol version:** 1  
-**Version:** final archived protocol
 **Production label:** `paper-final-19-algorithms`
 
 ## Status and purpose

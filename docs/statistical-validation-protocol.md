@@ -1,7 +1,6 @@
 # Statistical validation extension
 
 **Extension version:** 1  
-**Version:** final archived protocol
 **Status:** diagnostic validation of the observational
 `paper-final-19-algorithms` dataset
 
