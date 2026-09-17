@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "generator": "splitmix64-fisher-yates",
+  "generator_version": "1",
+  "n": 4096,
+  "first_seed": 1,
+  "last_seed": 1000,
+  "sequence_count": 1000,
+  "data_file": "permutations-n4096.jsonl.gz",
+  "data_sha256": "f3998676f76ab7e83029974411655f16db17e4a258793a9b33857752aab3b860"
+}

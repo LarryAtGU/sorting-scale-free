@@ -1,0 +1,49 @@
+running tree-unbalanced, n=128, pending=200
+running tree-avl, n=128, pending=200
+running quick, n=128, pending=200
+running quick-dual-pivot, n=128, pending=200
+running merge-top-down, n=128, pending=200
+running binary-insertion, n=128, pending=200
+running heap, n=128, pending=200
+running bitonic-network, n=128, pending=200
+running quick-multipivot-1, n=128, pending=200
+running quick-multipivot-2, n=128, pending=200
+running quick-multipivot-4, n=128, pending=200
+running tree-unbalanced, n=256, pending=200
+running tree-avl, n=256, pending=200
+running quick, n=256, pending=200
+running quick-dual-pivot, n=256, pending=200
+running merge-top-down, n=256, pending=200
+running binary-insertion, n=256, pending=200
+running heap, n=256, pending=200
+running bitonic-network, n=256, pending=200
+running quick-multipivot-1, n=256, pending=200
+running quick-multipivot-2, n=256, pending=200
+running quick-multipivot-4, n=256, pending=200
+running tree-unbalanced, n=512, pending=200
+running tree-avl, n=512, pending=200
+running quick, n=512, pending=200
+running quick-dual-pivot, n=512, pending=200
+running merge-top-down, n=512, pending=200
+running binary-insertion, n=512, pending=200
+running heap, n=512, pending=200
+running bitonic-network, n=512, pending=200
+running quick-multipivot-1, n=512, pending=200
+running quick-multipivot-2, n=512, pending=200
+running quick-multipivot-4, n=512, pending=200
+running tree-unbalanced, n=1024, pending=200
+running tree-avl, n=1024, pending=200
+running quick, n=1024, pending=200
+running quick-dual-pivot, n=1024, pending=200
+running merge-top-down, n=1024, pending=200
+running binary-insertion, n=1024, pending=200
+running heap, n=1024, pending=200
+running bitonic-network, n=1024, pending=200
+running quick-multipivot-1, n=1024, pending=200
+running quick-multipivot-2, n=1024, pending=200
+running quick-multipivot-4, n=1024, pending=200
+completed 8800 executions
+wrote data/results/temporal-mechanism-v1/runs.jsonl.gz
+wrote data/results/temporal-mechanism-v1/summary.csv
+wrote data/results/temporal-mechanism-v1/attachment-kernel.csv
+wrote data/results/temporal-mechanism-v1/snapshots.csv

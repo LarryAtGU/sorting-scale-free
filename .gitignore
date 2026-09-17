@@ -10,8 +10,23 @@ dist/
 
 data/generated/*
 !data/generated/.gitkeep
+!data/generated/*.manifest.json
 data/results/*
 !data/results/.gitkeep
+!data/results/batch-paper-final-19-algorithms-runs.jsonl.gz
+!data/results/batch-paper-final-19-algorithms-summary.csv
+!data/results/paper-final-19-algorithms.log
+!data/results/paper-final-statistical-validation.json
+!data/results/paper-secondary-analysis.json
+!data/results/paper-theory-validation.json
+!data/results/randomness-report.json
+!data/results/temporal-mechanism-v1/
+data/results/temporal-mechanism-v1/*
+!data/results/temporal-mechanism-v1/attachment-kernel.csv
+!data/results/temporal-mechanism-v1/manifest.json
+!data/results/temporal-mechanism-v1/run.log
+!data/results/temporal-mechanism-v1/runs.jsonl.gz
+!data/results/temporal-mechanism-v1/snapshots.csv
+!data/results/temporal-mechanism-v1/summary.csv
 figures/*
 !figures/.gitkeep
-

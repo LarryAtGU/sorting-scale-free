@@ -1,4 +1,4 @@
-# Major-revision analysis protocol
+# Secondary analysis protocol
 
 **Version:** 1  
 **Frozen:** 2026-09-15, before computing the analyses specified here  
@@ -6,11 +6,11 @@
 
 ## Purpose and chronology
 
-This protocol responds to the two independent reports in `../critical-review/`.
-It does not redefine or replace the already reported primary endpoint. The
-original 19-algorithm correlation and the later tail-validation extension remain
-historical results. Analyses below are major-revision robustness analyses and
-must be reported regardless of direction or magnitude.
+This protocol was specified after the original 19-algorithm endpoint was frozen.
+It does not redefine or replace that endpoint or the separately specified
+tail-validation extension. The analyses below assess resource decomposition,
+family dependence, cutoff sensitivity, execution-block dependence, and
+finite-size behavior, and must be reported regardless of direction or magnitude.
 
 No additional sorting algorithm will be added during this stage. A later,
 separately frozen experiment may introduce controlled implementation variants.
@@ -96,9 +96,9 @@ Add a finite-support (truncated) power-law comparison reflecting
 block-level uncertainty, not merely by their sign on the pooled histogram.
 
 Across all six sizes, plot for every algorithm family: exponent, `xmin/n`, tail
-fraction, tail span, and `dmax/n`. The major-revision manuscript will call these
-finite-size long-tail diagnostics unless a separately justified scaling analysis
-supports stronger terminology.
+fraction, tail span, and `dmax/n`. Report these as finite-size long-tail
+diagnostics unless a separately justified scaling analysis supports stronger
+terminology.
 
 ## Weighted-SCN and intervention gate
 

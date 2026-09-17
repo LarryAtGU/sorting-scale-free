@@ -1,0 +1,33 @@
+{
+  "algorithms": [
+    "tree-unbalanced",
+    "tree-avl",
+    "quick",
+    "quick-dual-pivot",
+    "merge-top-down",
+    "binary-insertion",
+    "heap",
+    "bitonic-network",
+    "quick-multipivot-1",
+    "quick-multipivot-2",
+    "quick-multipivot-4"
+  ],
+  "config_sha256": "ab7369843a74b51584978fd666da810aace7acfaff18693f3b59eb400550f13f",
+  "first_seed": 1,
+  "implementation_sha256": {
+    "src/scn_sorting/algorithms/expanded.py": "8b7d0188189de3d8de3bce1b7973be099e43e43684639841f925937d3a78bba9",
+    "src/scn_sorting/algorithms/initial.py": "49a2af41256a237e4f2faed2917b7b3b0b81b51441ec1b72ce891ea5a70923c9",
+    "src/scn_sorting/experiments/batch.py": "aac326c5a433964dcd54e94541a35b6f7a9046c2ebe623f2d68ee3ca1aa7d0f4",
+    "src/scn_sorting/experiments/mechanism_batch.py": "5ca3b71475c526610ad5c4fa22316f86a6490eb0c468f25625e75ae6e2b63175",
+    "src/scn_sorting/instrumentation/core.py": "8f61477a9ab65b8f813e538bb4f855c21ab5797029b9d7b4b709fd486c0644be"
+  },
+  "last_seed": 200,
+  "schema_version": 1,
+  "sizes": [
+    128,
+    256,
+    512,
+    1024
+  ],
+  "tracking_profile": "temporal-mechanism-distribution"
+}

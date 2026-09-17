@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Produce concentration and exact-BST checks requested in the second review."""
+"""Produce the frozen concentration and exact-BST validation outputs."""
 
 from __future__ import annotations
 
@@ -10,13 +10,8 @@ import math
 import random
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
-
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "data/results"
-PAPER = ROOT.parent / "over-leaf"
-FONT = "/System/Library/Fonts/Supplemental/Arial.ttf"
-FONT_BOLD = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 
 
 def ranks(values: list[float]) -> list[float]:
@@ -121,73 +116,6 @@ def ks_distance(left: list[float], right: list[float]) -> float:
     return distance
 
 
-def bst_figure(empirical: list[float], expected: list[float], ks: float) -> None:
-    image = Image.new("RGB", (1800, 1350), "white")
-    draw = ImageDraw.Draw(image)
-    regular = ImageFont.truetype(FONT, 23)
-    small = ImageFont.truetype(FONT, 20)
-    bold = ImageFont.truetype(FONT_BOLD, 40)
-    draw.text(
-        (80, 38),
-        "Exact random-BST prediction reproduces the full degree distribution",
-        fill="#172033",
-        font=bold,
-    )
-    draw.text(
-        (80, 95),
-        f"n = 4096; empirical mean over 1,000 permutations; full-distribution KS = {ks:.4f}",
-        fill="#667085",
-        font=regular,
-    )
-    box = (220, 175, 1680, 780)
-    xmin, xmax, ymin, ymax = 0.0, math.log10(4095), -6.0, 0.0
-    draw.line((box[0], box[3], box[2], box[3]), fill="#344054", width=3)
-    draw.line((box[0], box[1], box[0], box[3]), fill="#344054", width=3)
-    for power in range(4):
-        x = box[0] + (power - xmin) / (xmax - xmin) * (box[2] - box[0])
-        draw.line((x, box[3], x, box[3] + 8), fill="#344054", width=2)
-        draw.text((x - 25, box[3] + 14), f"10^{power}", fill="#344054", font=small)
-    for power in range(-6, 1):
-        y = box[3] - (power - ymin) / (ymax - ymin) * (box[3] - box[1])
-        draw.line((box[0], y, box[2], y), fill="#e4e7ec", width=2)
-        draw.text((box[0] - 75, y - 10), f"10^{power}", fill="#344054", font=small)
-    for values, color, width in ((expected, "#c62828", 8), (empirical, "#1769aa", 4)):
-        tail = ccdf(values)
-        points = []
-        for degree in range(1, len(tail)):
-            if tail[degree] <= 1e-6:
-                continue
-            x = box[0] + (math.log10(degree) - xmin) / (xmax - xmin) * (box[2] - box[0])
-            y = box[3] - (math.log10(tail[degree]) - ymin) / (ymax - ymin) * (box[3] - box[1])
-            points.append((x, y))
-        draw.line(points, fill=color, width=width)
-    draw.line((1120, 210, 1180, 210), fill="#c62828", width=8)
-    draw.text((1195, 195), "Exact expectation", fill="#c62828", font=regular)
-    draw.line((1120, 250, 1180, 250), fill="#1769aa", width=4)
-    draw.text((1195, 235), "Instrumented executions", fill="#1769aa", font=regular)
-    draw.text((760, 825), "Total degree k (log scale)", fill="#172033", font=regular)
-    draw.text((55, 440), "CCDF", fill="#172033", font=regular)
-
-    residual_box = (220, 900, 1680, 1190)
-    draw.line((residual_box[0], 1045, residual_box[2], 1045), fill="#344054", width=3)
-    draw.line((residual_box[0], residual_box[1], residual_box[0], residual_box[3]), fill="#344054", width=3)
-    empirical_tail, expected_tail = ccdf(empirical), ccdf(expected)
-    residual_points = []
-    scale = 6e-4
-    for degree in range(1, len(expected_tail)):
-        difference = empirical_tail[degree] - expected_tail[degree]
-        x = residual_box[0] + math.log10(degree) / xmax * (residual_box[2] - residual_box[0])
-        y = 1045 - difference / scale * 145
-        residual_points.append((x, max(residual_box[1], min(residual_box[3], y))))
-    draw.line(residual_points, fill="#1769aa", width=4)
-    for value in (-6e-4, 0.0, 6e-4):
-        y = 1045 - value / scale * 145
-        draw.text((110, y - 11), f"{value * 1e4:.0f}", fill="#344054", font=small)
-    draw.text((45, 1010), "CCDF diff. (1e-4)", fill="#172033", font=small)
-    draw.text((690, 1240), "Total degree k (log scale)", fill="#172033", font=regular)
-    image.save(PAPER / "figures/exact-bst-ccdf.png", dpi=(180, 180))
-
-
 def main() -> None:
     summary = [
         row
@@ -266,8 +194,6 @@ def main() -> None:
         empirical_cdf.append(left)
         expected_cdf.append(right)
     ks = max(abs(x - y) for x, y in zip(empirical_cdf, expected_cdf))
-    bst_figure(empirical, expected, ks)
-
     exact_tail_fits = []
     for size in (128, 256, 512, 1024, 2048, 4096):
         probabilities = [count / size for count in expected_bst_degree_counts(size)]
@@ -373,7 +299,7 @@ def main() -> None:
         ],
         "representative_lifetime_n1024": lifetime_results,
     }
-    path = RESULTS / "paper-scientific-revision-analysis.json"
+    path = RESULTS / "paper-theory-validation.json"
     path.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(path)
     print(json.dumps(output, indent=2))

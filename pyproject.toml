@@ -13,17 +13,17 @@ dependencies = []
 [project.scripts]
 scn-generate-inputs = "scn_sorting.experiments.generate_inputs:main"
 scn-test-randomness = "scn_sorting.experiments.validate_randomness:main"
-scn-export-trace = "scn_sorting.experiments.export_trace:main"
 scn-run-batch = "scn_sorting.experiments.batch:main"
-scn-export-distributions = "scn_sorting.experiments.export_distribution:main"
 
 [project.optional-dependencies]
 analysis = [
+  "matplotlib>=3.9",
   "numpy>=2.0",
 ]
 dev = [
   "pytest>=8.0",
   "ruff>=0.6",
+  "matplotlib>=3.9",
   "numpy>=2.0",
 ]
 

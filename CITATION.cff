@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software or dataset, please cite the archived release."
+title: "Sorting Comparison Network Experiments"
+authors:
+  - family-names: "Wen"
+    given-names: "Lian"
+    email: "l.wen@griffith.edu.au"
+repository-code: "https://github.com/LarryAtGU/sorting-scale-free"
+license: MIT

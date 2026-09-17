@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the frozen major-revision analyses that require no new sorting executions."""
+"""Run the frozen secondary analyses that require no new sorting executions."""
 
 from __future__ import annotations
 
@@ -87,7 +87,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--summary", type=Path, default=Path("data/results/batch-paper-final-19-algorithms-summary.csv"))
     parser.add_argument("--runs", type=Path, default=Path("data/results/batch-paper-final-19-algorithms-runs.jsonl.gz"))
-    parser.add_argument("--output", type=Path, default=Path("data/results/paper-major-revision-analysis.json"))
+    parser.add_argument("--output", type=Path, default=Path("data/results/paper-secondary-analysis.json"))
     args = parser.parse_args()
     rows = list(csv.DictReader(args.summary.open(encoding="utf-8")))
     fitted = {}
